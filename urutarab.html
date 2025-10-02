@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Latihan Mengurutkan Kata Arab (RTL)</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #dff7e6; /* hijau muda */
+      margin: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 18px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+
+    h1 { text-align: center; margin-bottom: 6px; }
+    p.lead { text-align:center; margin-top:0; color:#444; }
+
+    .bank {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 14px 0 22px 0;
+    }
+
+    .token {
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid #ccc;
+      cursor: grab;
+      user-select: none;
+      font-size: 24px;
+      font-family: "Amiri", "Scheherazade New", "Noto Naskh Arabic", "Arial", sans-serif;
+      direction: rtl; 
+    }
+
+    .token[aria-grabbed="true"] {
+      opacity: 0.4;
+    }
+
+    .drop-area {
+      border: 2px dashed #9ad9a8;
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f7fff7;
+    }
+
+    textarea#sequence {
+      width: 100%;
+      min-height: 100px;
+      font-size: 24px;
+      padding: 12px;
+      box-sizing: border-box;
+      border-radius: 6px;
+      border: 1px solid #bfe6c7;
+      resize: vertical;
+      direction: rtl;
+      text-align: right;
+      line-height: 1.8;
+      font-family: "Amiri","Scheherazade New","Noto Naskh Arabic","Arial",sans-serif;
+      background: #ffffff;
+    }
+
+    .controls {
+      margin-top: 12px;
+      display:flex;
+      gap:10px;
+      justify-content: center;
+      flex-wrap:wrap;
+    }
+
+    button {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    }
+    button#check {
+      background: #28a745;
+      color:white;
+    }
+    button#reset {
+      background: #e0e0e0;
+      color:#111;
+    }
+
+    .feedback {
+      margin-top: 12px;
+      text-align: center;
+      font-weight: 600;
+      min-height: 26px;
+    }
+
+    .hidden-token {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+  <div class="container" lang="id">
+    <h1>Latihan Mengurutkan Kata Bahasa Arab</h1>
+    <p class="lead">Drag kata-kata ke area di bawah — pengurutan dari kanan ke kiri (RTL).</p>
+
+    <div class="bank" id="bank" aria-label="Kumpulan kata yang dapat di-drag">
+      <!-- tokens akan diisi oleh JavaScript -->
+    </div>
+
+    <label for="sequence">Area Pengurutan (tarik kata ke sini):</label>
+    <div class="drop-area" id="dropArea" aria-label="Area pengurutan">
+      <textarea id="sequence" readonly dir="rtl" lang="ar" placeholder="Tarik kata ke sini..." ></textarea>
+    </div>
+
+    <div class="controls">
+      <button id="check">Hasil</button>
+      <button id="reset">Reset</button>
+    </div>
+
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </div>
+
+  <script>
+    const ITEMS = [
+      "أَذْهَبُ",
+      "إِلَى",
+      "المَدْرَسَة",
+      "مَشْيًا",
+      "عَلَى الأَقْدَام",
+      "صَبَاحًا مُبَكِّرًا"
+    ];
+
+    const CORRECT = [...ITEMS];
+
+    const bank = document.getElementById('bank');
+    const seqArea = document.getElementById('sequence');
+    const feedback = document.getElementById('feedback');
+    const dropArea = document.getElementById('dropArea');
+    const checkBtn = document.getElementById('check');
+    const resetBtn = document.getElementById('reset');
+
+    let placed = [];
+    let currentTokens = [];
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function init() {
+      bank.innerHTML = '';
+      placed = [];
+      seqArea.value = '';
+      feedback.textContent = '';
+      const shuffled = shuffle(ITEMS);
+      currentTokens = [];
+
+      shuffled.forEach((txt) => {
+        const span = document.createElement('div');
+        span.className = 'token';
+        span.draggable = true;
+        span.setAttribute('role','button');
+        span.setAttribute('aria-grabbed','false');
+        span.lang = "ar";
+        span.dir = "rtl";
+        span.textContent = txt;
+
+        span.addEventListener('dragstart', (ev) => {
+          ev.dataTransfer.setData('text/plain', txt);
+          span.setAttribute('aria-grabbed','true');
+          ev.dataTransfer.effectAllowed = "move";
+        });
+
+        span.addEventListener('dragend', () => {
+          if (!span.classList.contains('hidden-token')) {
+            span.setAttribute('aria-grabbed','false');
+          }
+        });
+
+        bank.appendChild(span);
+        currentTokens.push(span);
+      });
+    }
+
+    dropArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const txt = e.dataTransfer.getData('text/plain');
+      if (!txt) return;
+
+      placed.push(txt);
+      seqArea.value = placed.join(' - ');
+
+      const tokenEl = currentTokens.find(t => t.textContent === txt && !t.classList.contains('hidden-token'));
+      if (tokenEl) tokenEl.classList.add('hidden-token');
+
+      if (placed.length === ITEMS.length) {
+        checkAnswer();
+      }
+    });
+
+    function arraysEqual(a,b) {
+      if (a.length !== b.length) return false;
+      for (let i=0;i<a.length;i++){
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    }
+
+    function checkAnswer() {
+      if (arraysEqual(placed, CORRECT)) {
+        feedback.style.color = '#0b6b1e';
+        feedback.textContent = "Hebat. Jawaban anda Benar";
+      } else {
+        feedback.style.color = '#a71d2a';
+        feedback.textContent = "Maaf jawaban anda Salah ulangi lagi";
+      }
+    }
+
+    checkBtn.addEventListener('click', () => {
+      if (placed.length === 0) {
+        feedback.style.color = '#333';
+        feedback.textContent = "Silakan susun kata terlebih dahulu.";
+        return;
+      }
+      checkAnswer();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      init();
+    });
+
+    init();
+
+    bank.addEventListener('click', (ev) => {
+      const el = ev.target.closest('.token');
+      if (!el || el.classList.contains('hidden-token')) return;
+      const txt = el.textContent;
+      placed.push(txt);
+      seqArea.value = placed.join(' - ');
+      el.classList.add('hidden-token');
+      if (placed.length === ITEMS.length) {
+        checkAnswer();
+      }
+    });
+  </script>
+</body>
+</html>
